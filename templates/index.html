@@ -1,15 +1,35 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>PDF OCR Extractor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root {
+            /* Colors */
             --primary-color: #2563eb;
             --primary-hover: #1d4ed8;
             --bg-color: #f8fafc;
             --text-color: #1e293b;
             --border-color: #e2e8f0;
+
+            /* Fluid spacing units */
+            --space-unit: clamp(0.5rem, 1vw, 1rem);
+            --space-xs: calc(var(--space-unit) * 0.5);
+            --space-sm: var(--space-unit);
+            --space-md: calc(var(--space-unit) * 2);
+            --space-lg: calc(var(--space-unit) * 3);
+            --space-xl: calc(var(--space-unit) * 4);
+
+            /* Fluid typography */
+            --font-size-base: clamp(0.875rem, 1vw + 0.5rem, 1rem);
+            --font-size-lg: clamp(1rem, 1.5vw + 0.5rem, 1.25rem);
+            --font-size-xl: clamp(1.25rem, 2vw + 0.5rem, 1.5rem);
+            --font-size-2xl: clamp(1.5rem, 2.5vw + 0.5rem, 2rem);
+
+            /* Container width */
+            --container-width: min(100% - 2rem, 1000px);
         }
 
         * {
@@ -23,34 +43,40 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             line-height: 1.6;
+            min-height: 100vh;
+            font-size: var(--font-size-base);
         }
 
         .container {
-            max-width: 1000px;
-            margin: 2rem auto;
-            padding: 0 1rem;
+            width: var(--container-width);
+            margin: var(--space-md) auto;
         }
 
         .card {
             background: white;
             border-radius: 12px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            padding: 2rem;
-            margin-bottom: 2rem;
+            padding: var(--space-md);
+            margin-bottom: var(--space-md);
         }
 
         h1 {
-            font-size: 2rem;
+            font-size: var(--font-size-2xl);
             font-weight: 600;
-            margin-bottom: 1.5rem;
+            margin-bottom: var(--space-md);
             color: var(--text-color);
+            text-align: center;
+        }
+
+        h2 {
+            font-size: var(--font-size-xl);
         }
 
         .upload-section {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
-            padding: 2rem;
+            gap: var(--space-sm);
+            padding: var(--space-lg);
             border: 2px dashed var(--border-color);
             border-radius: 8px;
             text-align: center;
@@ -63,25 +89,31 @@
         }
 
         .upload-icon {
-            font-size: 2rem;
+            font-size: var(--font-size-2xl);
             color: var(--primary-color);
-            margin-bottom: 1rem;
+            margin-bottom: var(--space-xs);
         }
 
         .file-input {
             display: none;
         }
 
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: var(--space-md);
+        }
+
         .upload-button {
             background-color: var(--primary-color);
             color: white;
-            padding: 0.75rem 1.5rem;
+            padding: var(--space-sm) var(--space-md);
             border: none;
             border-radius: 6px;
-            font-size: 1rem;
+            font-size: var(--font-size-base);
             cursor: pointer;
             transition: background-color 0.3s ease;
-            margin-top: 1rem;
+            width: min(100%, 200px);
         }
 
         .upload-button:hover {
@@ -95,7 +127,7 @@
 
         .progress {
             display: none;
-            margin-top: 1.5rem;
+            margin-top: var(--space-md);
         }
 
         .progress-bar {
@@ -117,83 +149,84 @@
             display: none;
             color: #dc2626;
             background-color: #fee2e2;
-            padding: 1rem;
+            padding: var(--space-sm);
             border-radius: 6px;
-            margin-top: 1rem;
+            margin-top: var(--space-md);
         }
 
         .result {
             display: none;
-            margin-top: 1.5rem;
-        }
-
-        .result-card {
-            background-color: #f8fafc;
-            border-radius: 8px;
-            padding: 1.5rem;
+            margin-top: var(--space-md);
         }
 
         .result-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: var(--space-sm);
         }
 
         .result-content {
             background-color: white;
-            padding: 1rem;
+            padding: var(--space-sm);
             border-radius: 6px;
             border: 1px solid var(--border-color);
             white-space: pre-wrap;
             font-family: monospace;
-            max-height: 400px;
+            max-height: min(70vh, 400px);
             overflow-y: auto;
+            font-size: calc(var(--font-size-base) * 0.9);
         }
 
         .file-info {
             display: none;
-            margin-top: 1rem;
-            padding: 1rem;
-            background-color: #f8fafc;
+            margin-top: var(--space-sm);
+            padding: var(--space-sm);
+            background-color: var(--bg-color);
             border-radius: 6px;
             border: 1px solid var(--border-color);
         }
 
         @keyframes progress {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="card">
-            <h1 style="text-align: center;">PDF OCR Extractor</h1>
-            
+            <h1>PDF OCR Extractor</h1>
+
             <form id="uploadForm">
                 <div class="upload-section" id="dropZone">
                     <div class="upload-icon">📄</div>
                     <p>Drag and drop your PDF file here<br>or click to browse</p>
                     <input type="file" id="pdfFile" accept=".pdf" class="file-input" required>
                 </div>
-                <div style="display: flex; justify-content: center;">
+                <div class="button-container">
                     <button type="submit" class="upload-button" disabled>Process PDF</button>
                 </div>
-                
+
                 <div class="file-info" id="fileInfo"></div>
-                
+
                 <div class="progress">
                     <p>Processing your PDF... Please wait.</p>
                     <div class="progress-bar">
                         <div class="progress-bar-fill"></div>
                     </div>
                 </div>
-                
+
                 <div class="error" id="errorMessage"></div>
             </form>
         </div>
-        
+
         <div class="card result" id="resultCard">
             <div class="result-header">
                 <h2>Results</h2>
@@ -233,7 +266,7 @@
         dropZone.ondrop = (e) => {
             e.preventDefault();
             dropZone.style.borderColor = 'var(--border-color)';
-            
+
             const file = e.dataTransfer.files[0];
             if (file && file.type === 'application/pdf') {
                 fileInput.files = e.dataTransfer.files;
@@ -280,31 +313,31 @@
 
         document.getElementById('uploadForm').onsubmit = async (e) => {
             e.preventDefault();
-            
+
             const form = new FormData();
             const fileInput = document.getElementById('pdfFile');
             form.append('file', fileInput.files[0]);
-            
+
             document.querySelector('.progress').style.display = 'block';
             document.querySelector('.error').style.display = 'none';
             document.getElementById('resultCard').style.display = 'none';
             uploadButton.disabled = true;
-            
+
             try {
                 const response = await fetch('/upload', {
                     method: 'POST',
                     body: form
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (!response.ok) throw new Error(data.error || 'Upload failed');
-                
+
                 const resultCard = document.getElementById('resultCard');
                 const result = document.getElementById('result');
                 result.textContent = JSON.stringify(data, null, 2);
                 resultCard.style.display = 'block';
-                
+
                 // Scroll to results
                 resultCard.scrollIntoView({ behavior: 'smooth' });
             } catch (error) {
@@ -316,4 +349,5 @@
         };
     </script>
 </body>
+
 </html>
