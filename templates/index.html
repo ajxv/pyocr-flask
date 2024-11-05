@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF OCR Extractor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f8fafc;
+            --text-color: #1e293b;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text-color);
+        }
+
+        .upload-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 2rem;
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: var(--primary-color);
+        }
+
+        .upload-icon {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        .upload-button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .upload-button:disabled {
+            background-color: var(--border-color);
+            cursor: not-allowed;
+        }
+
+        .progress {
+            display: none;
+            margin-top: 1.5rem;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background-color: var(--border-color);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background-color: var(--primary-color);
+            width: 0%;
+            transition: width 0.3s ease;
+            animation: progress 1.5s ease-in-out infinite;
+        }
+
+        .error {
+            display: none;
+            color: #dc2626;
+            background-color: #fee2e2;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+        }
+
+        .result {
+            display: none;
+            margin-top: 1.5rem;
+        }
+
+        .result-card {
+            background-color: #f8fafc;
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .result-content {
+            background-color: white;
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .file-info {
+            display: none;
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #f8fafc;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        @keyframes progress {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1 style="text-align: center;">PDF OCR Extractor</h1>
+            
+            <form id="uploadForm">
+                <div class="upload-section" id="dropZone">
+                    <div class="upload-icon">📄</div>
+                    <p>Drag and drop your PDF file here<br>or click to browse</p>
+                    <input type="file" id="pdfFile" accept=".pdf" class="file-input" required>
+                </div>
+                <div style="display: flex; justify-content: center;">
+                    <button type="submit" class="upload-button" disabled>Process PDF</button>
+                </div>
+                
+                <div class="file-info" id="fileInfo"></div>
+                
+                <div class="progress">
+                    <p>Processing your PDF... Please wait.</p>
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill"></div>
+                    </div>
+                </div>
+                
+                <div class="error" id="errorMessage"></div>
+            </form>
+        </div>
+        
+        <div class="card result" id="resultCard">
+            <div class="result-header">
+                <h2>Results</h2>
+            </div>
+            <div class="result-content" id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('pdfFile');
+        const uploadButton = document.querySelector('.upload-button');
+        const fileInfo = document.getElementById('fileInfo');
+
+        // File selection handling
+        fileInput.onchange = () => {
+            const file = fileInput.files[0];
+            if (file) {
+                showFileInfo(file);
+                uploadButton.disabled = false;
+            } else {
+                hideFileInfo();
+                uploadButton.disabled = true;
+            }
+        };
+
+        // Drag and drop handling
+        dropZone.ondragover = (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = 'var(--primary-color)';
+        };
+
+        dropZone.ondragleave = () => {
+            dropZone.style.borderColor = 'var(--border-color)';
+        };
+
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = 'var(--border-color)';
+            
+            const file = e.dataTransfer.files[0];
+            if (file && file.type === 'application/pdf') {
+                fileInput.files = e.dataTransfer.files;
+                showFileInfo(file);
+                uploadButton.disabled = false;
+            } else {
+                showError('Please upload a PDF file');
+            }
+        };
+
+        dropZone.onclick = () => {
+            fileInput.click();
+        };
+
+        function showFileInfo(file) {
+            fileInfo.style.display = 'block';
+            fileInfo.innerHTML = `
+                <strong>Selected file:</strong> ${file.name}<br>
+                <strong>Size:</strong> ${formatFileSize(file.size)}
+            `;
+        }
+
+        function hideFileInfo() {
+            fileInfo.style.display = 'none';
+            fileInfo.innerHTML = '';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        document.getElementById('uploadForm').onsubmit = async (e) => {
+            e.preventDefault();
+            
+            const form = new FormData();
+            const fileInput = document.getElementById('pdfFile');
+            form.append('file', fileInput.files[0]);
+            
+            document.querySelector('.progress').style.display = 'block';
+            document.querySelector('.error').style.display = 'none';
+            document.getElementById('resultCard').style.display = 'none';
+            uploadButton.disabled = true;
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: form
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) throw new Error(data.error || 'Upload failed');
+                
+                const resultCard = document.getElementById('resultCard');
+                const result = document.getElementById('result');
+                result.textContent = JSON.stringify(data, null, 2);
+                resultCard.style.display = 'block';
+                
+                // Scroll to results
+                resultCard.scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                document.querySelector('.progress').style.display = 'none';
+                uploadButton.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>
